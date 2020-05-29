@@ -3,22 +3,21 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 import time
-import sys
 import os
 
 
 subreddit = input("Subreddit: ")
 
-if not os.path.isdir(subreddit):
-	os.makedirs(subreddit)
+if not os.path.isdir("downloads/"+subreddit):
+	os.makedirs("downloads/"+subreddit)
 
 url = "https://www.reddit.com/r/"+subreddit+"/"
+
+pages = int(input("Number of pages (~5-8 pics/pg):"))*10
 
 opt = Options()
 opt.add_argument('--headless')
 opt.add_argument('--disable-gpu')  # Last I checked this was necessary.
-
-pages = int(input("Number of pages (~5-8 pics/pg):"))*10
 
 driver_path = False
 for dirpath,_,filenames in os.walk(os.getcwd()):
@@ -52,9 +51,7 @@ while 0 == html[a:].find('https://preview.redd.it/award_images'):
 	a += html[a+10:].find('https://preview.redd.it/') + 10
 
 done = set()
-tdone = set()
-
-browser.get_screenshot_as_file('/tmp/google.png') 
+tdone = set() 
 
 start = time.process_time()
 
@@ -70,7 +67,7 @@ while a != 9:
 
 	if img not in done and title not in tdone and len(img) == len("https://i.redd.it/wzwlj4b8xd151.jpg"):
 		try:
-			urlretrieve(img, subreddit+"/"+title+".jpg")
+			urlretrieve(img, "downloads/"+subreddit+"/"+title+".jpg")
 		except Exception as e:
 			pass
 		print(title+".jpg")
