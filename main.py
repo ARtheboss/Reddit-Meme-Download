@@ -1,8 +1,10 @@
 from urllib.request import urlopen, urlretrieve, Request
-from time import sleep
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
 import sys
 import os
-
 
 
 subreddit = input("Subreddit: ")
@@ -12,21 +14,37 @@ if not os.path.isdir(subreddit):
 
 url = "https://www.reddit.com/r/"+subreddit+"/"
 
-req = Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+opt = Options()
+opt.add_argument('--headless')
+opt.add_argument('--disable-gpu')  # Last I checked this was necessary.
 
-while True:
-	try:
-		page = urlopen(url)
-		break
-	except Exception as e:
-		sys.exit(e)
-bv = page.read()
-html = bv.decode()
+pages = int(input("Number of pages (~5-8 pics/pg):"))*10
+
+driver_path = False
+for dirpath,_,filenames in os.walk(os.getcwd()):
+    for f in filenames:
+    	if f == "chromedriver":
+        	driver_path = os.path.abspath(os.path.join(dirpath, f))
+        	break
+if not driver_path:
+	driver_path = input("Chrome Driver Path: ")
+	driver_path = driver_path[:-1]
+browser = webdriver.Chrome(driver_path, options = opt)
+
+browser.get(url)
+time.sleep(1)
+
+elem = browser.find_element_by_tag_name("body")
+
+while pages:
+    elem.send_keys(Keys.PAGE_DOWN)
+    #browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(0.2)
+    pages-=1
+
+html = elem.get_attribute("innerHTML")
 
 html = html[:html.rfind("<script>")]
-
-f1 = open("html.txt","w")
-f1.write(html)
 
 a = html.find('https://preview.redd.it/')
 b = 0
@@ -35,6 +53,10 @@ while 0 == html[a:].find('https://preview.redd.it/award_images'):
 
 done = set()
 tdone = set()
+
+browser.get_screenshot_as_file('/tmp/google.png') 
+
+start = time.process_time()
 
 i = 0
 while a != 9:
@@ -47,17 +69,21 @@ while a != 9:
 	title = html[d:c]
 
 	if img not in done and title not in tdone and len(img) == len("https://i.redd.it/wzwlj4b8xd151.jpg"):
-		print(title+".jpg")
 		try:
 			urlretrieve(img, subreddit+"/"+title+".jpg")
 		except Exception as e:
-			break
+			pass
+		print(title+".jpg")
 		done.add(img)
 		tdone.add(title)
+		i += 1
 	elif img == "":
 		break
-	i += 1
 	a += html[a+10:].find('https://preview.redd.it/') + 10
 	while 0 == html[a:].find('https://preview.redd.it/award_images'):
 		a += html[a+10:].find('https://preview.redd.it/') + 10
+	if time.process_time() - start > 5:
+		break
+print("# Downloaded: "+str(i))
+browser.quit()
 		
